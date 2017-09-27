@@ -42,8 +42,9 @@ RUN adduser -D -u 1000 node \
     && rm -Rf "node-v$NODE_VERSION" \
     && rm "node-v$NODE_VERSION.tar.xz" SHASUMS256.txt.asc SHASUMS256.txt
 
-CMD [ "node" ]
+ADD processrouter /bin/processrouter
+CMD [ "/bin/processrouter" ]
 
-CMD ["/bin/sh"]
+
 
 
