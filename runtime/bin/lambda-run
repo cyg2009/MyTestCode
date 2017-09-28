@@ -7,24 +7,19 @@
    process.stdin.setEncoding('utf-8')
 
    process.stdin.on('data', function (data) {
-        console.log('info', 'Got a new event:')
-        console.log('{{{}}}') //indicate end of a conversation
-        return
-
+       
         var event = JSON.parse(data)
         var lambdaHandler = 'handler'
         if (lambdaFunc){
             lambdaFunc[lambdaHandler](event);
-            console.log('info', 'lambda-run successfully complete.');
-         
+            console.log('info', 'lambda-run successfully complete.');         
         } 
         else{
             err='can not find function file:'+lambdaPath;
             console.log('can not find function:'+lambdaPath);
         } 
-        console.log('') //indicate end of a conversation
-    
-    });
 
+        console.log('--{{{|}}}--') //indicate end of a conversation    
+    });
 
 })(process.argv[2]);

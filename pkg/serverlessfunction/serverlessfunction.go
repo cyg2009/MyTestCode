@@ -3,13 +3,17 @@ package serverlessfunction
 import (
     "bufio"
     "bytes"
-    "io"      
+    "io"     
+    "io/ioutil"
     "syscall"
     "os/exec"
-    "fmt"
     "strings"
+    "os"
+    "path/filepath"
+    "errors"
 )
 
+const EndOfFunction = "--{{{|}}}--"
 type ServerlessFunction struct{
     id string
     input io.Writer
@@ -20,16 +24,77 @@ type ServerlessFunction struct{
     started bool
 }
 
-func NewServerlessFunction(functionId string, sfcommand string, sfarguments []string) *ServerlessFunction{
-     return &ServerlessFunction{
+func RemoveContents(dir string) error {
+    d, err := os.Open(dir)
+    if err != nil {
+        return err
+    }
+    defer d.Close()
+    names, err := d.Readdirnames(-1)
+    if err != nil {
+        return err
+    }
+    for _, name := range names {
+        err = os.RemoveAll(filepath.Join(dir, name))
+        if err != nil {
+            return err
+        }
+    }
+    return nil
+}
+
+func CreateServerlessFunction (functionId string, data []byte, sfCommand string, sfArguments []string) (*ServerlessFunction, error){
+
+    if len(functionId) == 0 {
+        return nil, errors.New("Invalid function id.")
+    }
+
+    if  len(data) == 0 {
+        return nil, errors.New("Invalid function data.")
+    }
+    // default value
+    if len(sfCommand) == 0 {
+        sfCommand = "node"
+    } 
+ 
+    // Save the function js file
+    dest := os.Getenv("RUNTIME_ROOT")
+    if len(dest) == 0 {
+        dest = "/var/runtime"
+    }
+
+    dest = dest + "/func/" + functionId
+    if _, err := os.Stat(dest); os.IsNotExist(err) {
+        os.Mkdir(dest, os.ModeDir)
+    } else {
+        RemoveContents(dest)
+    }
+ 
+    dest = dest + "/index.js"
+    err := ioutil.WriteFile(dest, data, 0644)
+    if err != nil {
+        return nil, err
+    }
+
+    if nil == sfArguments ||  len(sfArguments) == 0 {
+        lambda := os.Getenv("RUNTIME_LAMBDA")
+        if len(lambda) == 0 {
+            lambda = "/var/runtime/bin/lambda-run"
+        }
+        sfArguments = []string{lambda, dest}
+    }
+
+    ff := &ServerlessFunction{
         id: functionId,
         input: nil,
         outputReader: nil,
         cmd: nil,
         started: false,
-        command: sfcommand,
-        args: sfarguments,
+        command: sfCommand,
+        args: sfArguments,
     }
+
+    return ff, nil
 }
 func (sf *ServerlessFunction) Start(){
 
@@ -71,23 +136,21 @@ func (sf *ServerlessFunction) Trigger (event []byte) (string) {
 
     for {
         line, _, err := sf.outputReader.ReadLine()
-        // return fmt.Sprintf("get a line of data back: %d",len(line)) 
+        if err != nil {
+            lines.WriteString(err.Error())
+            lines.WriteString("\n\r")
+            break
+        }
+
         newLine := string(line)
 
-        fmt.Println(newLine)
-        if strings.HasPrefix(newLine, `{{{}}}`) {
+        if strings.HasPrefix(newLine, EndOfFunction) {
             break;
         }
        
         lines.WriteString(newLine)
         lines.WriteString("\n\r")
-
-          //will break at an empty line 
-        if err != nil {
-            fmt.Println("Got error message:")
-               fmt.Println(err)
-            break
-        }
+      
     }
 
     return lines.String()

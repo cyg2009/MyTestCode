@@ -40,8 +40,11 @@ func ServeHTTPAddFunction(w http.ResponseWriter, req *http.Request) {
         makeFailedResponse(w, http.StatusInternalServerError, err.Error())
         return 
     }
-
-    fm.GetFunctionManager().CreateFunction(functionId, data, "", nil)
+    _, err = fm.GetFunctionManager().CreateFunction(functionId, data, "", nil)
+    if err != nil {
+        makeFailedResponse(w, http.StatusInternalServerError, err.Error())
+        return 
+    }
     body := "Add " + functionId + " successully!"
     makeOKResponse(w, body)
 }

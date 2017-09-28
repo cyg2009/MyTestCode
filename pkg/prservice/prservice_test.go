@@ -12,7 +12,7 @@ import (
 func TestMain(m *testing.M) {    
 
     os.Setenv("RUNTIME_ROOT", "/work/src/MyTestCode/runtime")
-    
+    os.Setenv("RUNTIME_LAMBDA", "/work/src/MyTestCode/runtime/bin/lambda-run")
     code := m.Run() 
 
     os.Exit(code)
@@ -65,16 +65,16 @@ func TestIngestAndExecuteFunction(t *testing.T){
     
     fgr := fm.GetFunctionManager()
    
-    functionId := "f1"
+    functionId := "f1:1.0"
 
     //ingest function
-
     body :=  bytes.NewBufferString(`
        exports.handler = function(event) {
-           console.log('got event:' + event)
-           console.log('bye!')
+           console.log('f1:1.0 got an event:' + JSON.stringify(event))
+           console.log((new Date()).toString())
        }
     `)
+
     req, err := http.NewRequest("POST", "/add", body)
     if err != nil {
         t.Fatal(err)
@@ -88,8 +88,10 @@ func TestIngestAndExecuteFunction(t *testing.T){
 	handler.ServeHTTP(rr, req)
 
 	if status := rr.Code; status != http.StatusOK {
-        t.Errorf("Function-Fetch handler returned wrong status code: got %v want %v",
+        t.Errorf("Function-Add handler returned wrong status code: got %v want %v",
             status, http.StatusOK)
+        t.Log(rr.Body.String())
+        return
 	}
         
     sf, ok := fgr.GetFunction(functionId)
