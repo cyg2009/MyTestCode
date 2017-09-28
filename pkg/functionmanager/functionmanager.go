@@ -111,11 +111,7 @@ func (mgr *ServerlessFunctionManager) CreateFunction (functionId string, data []
     if len(sfcommand) == 0 {
         sfcommand = "node"
     } 
-
-    if nil == sfarguments ||  len(sfarguments) == 0 {
-        sfarguments = []string{"index.js"}
-    }
-
+ 
     // Save the function js file
     var dest = os.Getenv("RUNTIME_ROOT")
     if len(dest) == 0 {
@@ -128,12 +124,17 @@ func (mgr *ServerlessFunctionManager) CreateFunction (functionId string, data []
     } else {
         RemoveContents(dest)
     }
-
-    err := ioutil.WriteFile(dest + "/index.js", data, 0644)
+ 
+    dest = dest + "/index.js"
+    err := ioutil.WriteFile(dest, data, 0644)
     if err != nil {
         return nil, false
     }
- 
+   
+    if nil == sfarguments ||  len(sfarguments) == 0 {
+        sfarguments = []string{"lambda-run", dest}
+    }
+
     sf := &ServerlessFunction{
         id: functionId,
         input: nil,
@@ -365,5 +366,7 @@ func GetFunctionManager() (*ServerlessFunctionManager) {
 
     return instance
 }
+
+
 
 
