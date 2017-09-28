@@ -95,11 +95,58 @@ func (mgr *ServerlessFunctionManager) SetFunctionPackageManager(gf FetchFunction
 } 
 
 func (mgr *ServerlessFunctionManager) AddFunction (sf *ServerlessFunction) {
-
     // sf.Start()
-    mgr.functionStore[sf.id] = sf
+    if mgr.functionStore[sf.id] == nil || mgr.functionStore[sf.id] != sf {
+        mgr.functionStore[sf.id] = sf
+    }
 }
 
+func (mgr *ServerlessFunctionManager) CreateFunction (functionId string, data []byte, sfcommand string, sfarguments []string)(*ServerlessFunction, bool) {
+
+    if len(functionId) == 0 || len(data) == 0 {
+        return nil, false
+    }
+
+    // default value
+    if len(sfcommand) == 0 {
+        sfcommand = "node"
+    } 
+
+    if nil == sfarguments ||  len(sfarguments) == 0 {
+        sfarguments = []string{"index.js"}
+    }
+
+    // Save the function js file
+    var dest = os.Getenv("RUNTIME_ROOT")
+    if len(dest) == 0 {
+        dest = "/var/runtime"
+    }
+
+    dest = dest + "/func/" + functionId
+    if _, err := os.Stat(dest); os.IsNotExist(err) {
+        os.Mkdir(dest, os.ModeDir)
+    } else {
+        RemoveContents(dest)
+    }
+
+    err := ioutil.WriteFile(dest + "/index.js", data, 0644)
+    if err != nil {
+        return nil, false
+    }
+ 
+    sf := &ServerlessFunction{
+        id: functionId,
+        input: nil,
+        outputReader: nil,
+        cmd: nil,
+        started: false,
+        command: sfcommand,
+        args: sfarguments,
+    }
+ 
+    mgr.functionStore[sf.id] = sf
+    return sf, true
+}
 func (mgr *ServerlessFunctionManager) GetFunction (functionId string) (*ServerlessFunction, bool){
     sf, ok := mgr.functionStore[functionId]
     return sf, ok
@@ -273,25 +320,9 @@ type ServerlessFunctionPackageManager struct {
 func (pm *ServerlessFunctionPackageManager) SetFunctionStoreUrl (baseUrl string){
     pm.functionStoreUrl = baseUrl
 } 
-func (pm *ServerlessFunctionPackageManager) AddFunction (functionId string, sfcommand string, arguments []string)(*ServerlessFunction, bool) {
 
-    if len(functionId) == 0 || len(sfcommand) == 0 {
-        return nil, false
-    }
 
-    sf := &ServerlessFunction{
-        id: functionId,
-        input: nil,
-        outputReader: nil,
-        cmd: nil,
-        started: false,
-        command: sfcommand,
-        args: arguments,
-    }
 
-    return sf, true
-
-}
 func (pm *ServerlessFunctionPackageManager) FetchFunction (functionId string)(*ServerlessFunction, bool) {
 
     funcpath, err := retrieveFunction(pm.functionStoreUrl, functionId)
