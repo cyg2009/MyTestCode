@@ -11,7 +11,7 @@ function main() {
     LOG "go build --ldflags '-extldflags \"-static\"' -a -o processrouter ./cmd"
     export CGO_ENABLED=0
     export GO_EXTLINK_ENABLED=0
-    go build --ldflags '-extldflags "-static"' -a -o processrouter ./cmd
+    go build --ldflags '-extldflags "-static"' -a -o processrouter ./cmd/main.go
 }
 
 main $*

@@ -4,8 +4,8 @@ import (
     "os"
     "fmt"
     "net"
-    "processrouter/pkg/prservice"
-    fm "processrouter/pkg/functionmanager"
+    "../pkg/prservice"
+    fm "../pkg/functionmanager"
     "net/http"
 )
 

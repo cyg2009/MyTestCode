@@ -5,7 +5,7 @@ import (
     "io/ioutil"
     "sync"
     "time"
-    fm "processrouter/pkg/functionmanager"
+    fm "../functionmanager"
 )
 
 func makeOKResponse(w http.ResponseWriter, body string){
