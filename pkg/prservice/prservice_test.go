@@ -1,13 +1,11 @@
 package prservice
 import (
     "os"
-    // "os/exec"
-    "time"
+
 	"net/http"
 	"testing"
     "net/http/httptest"
-    "bytes"
-    fm "processrouter/pkg/functionmanager"
+   
 )
 
 func TestMain(m *testing.M) {    
@@ -62,76 +60,8 @@ func TestOtherHandler(t *testing.T){
     t.Log(rr.Body.String())
 }
 
-func TestFetchFunctionGet(t *testing.T){
-    
-    fgr := fm.GetFunctionManager()
-    pkgMgr := &fm.ServerlessFunctionPackageManager{}
-    baseUrl := "http://10.21.119.117:5000/v2/serverless/"
-    pkgMgr.SetFunctionStoreUrl(baseUrl)
-    fgr.SetFunctionPackageManager(pkgMgr)
-    
-    functionId := "f3:1.0.0"
 
-    //Fetch function
-    req, err := http.NewRequest("GET", "/fetch?function=f3:1.0.0", nil)
-    if err != nil {
-        t.Fatal(err)
-	}
-
-	rr := httptest.NewRecorder()
-	
-	handler := GetPrserviceHttpHandler()
-	
-	handler.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-        t.Errorf("Function-Fetch handler returned wrong status code: got %v want %v",
-            status, http.StatusOK)
-	}
-        
-    sf, ok := fgr.GetFunction(functionId)
-    if ok == false || sf == nil  {
-	   t.Errorf("Fail to get function.")
-   }
-  
-}
-
-func TestFetchFunctionPost(t *testing.T){
-    
-    fgr := fm.GetFunctionManager()
-    pkgMgr := &fm.ServerlessFunctionPackageManager{}
-    baseUrl := "http://10.21.119.117:5000/v2/serverless/"
-    pkgMgr.SetFunctionStoreUrl(baseUrl)
-    fgr.SetFunctionPackageManager(pkgMgr)
-    
-    functionId := "f3:1.0.0"
-
-    //Fetch function
-    req, err := http.NewRequest("POST", "/fetch", nil)
-    if err != nil {
-        t.Fatal(err)
-	}
-    req.Header.Add("function",functionId)
-
-	rr := httptest.NewRecorder()
-	
-	handler := GetPrserviceHttpHandler()
-	
-	handler.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-        t.Errorf("Function-Fetch handler returned wrong status code: got %v want %v",
-            status, http.StatusOK)
-	}
-        
-    sf, ok := fgr.GetFunction(functionId)
-    if ok == false || sf == nil  {
-	   t.Errorf("Fail to get function.")
-   }
-  
-}
-
-
+/*
 func TestFetchAndExecuteOneFunctionOnce(t *testing.T){
     
     fgr := fm.GetFunctionManager()
@@ -371,3 +301,4 @@ func TestFetchAndExecuteTwoFunctions(t *testing.T){
   
     t.Log(rr.Body.String())
 }
+*/

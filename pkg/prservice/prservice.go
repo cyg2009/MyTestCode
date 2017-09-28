@@ -5,7 +5,6 @@ import (
     "io/ioutil"
     "sync"
     "time"
-    "os"
     fm "MyTestCode/pkg/functionmanager"
 )
 
@@ -20,25 +19,6 @@ func makeFailedResponse(w http.ResponseWriter, statusCode int, message string) {
     //w.Header().Set("Content-Type", "application/json")
     w.WriteHeader(statusCode)
     w.Write([]byte(message))
-}
-
-func ServeHTTPFetch(w http.ResponseWriter, req *http.Request) {
-
-    functionId := req.URL.Query().Get("function")
-     
-    if  len(functionId) == 0 {
-        makeFailedResponse(w, http.StatusBadRequest, "No function specified.")
-        return
-    }
-    sf, ok := fm.GetFunctionManager().FetchFunction(functionId)
-    if  ok == false {
-        makeFailedResponse(w, http.StatusInternalServerError, "Failed to get the function package.")
-        return
-    }
-
-    fm.GetFunctionManager().AddFunction(sf)
-    body := "Fetch " + functionId + " successully!"
-    makeOKResponse(w, body)
 }
 
 //This will receive a function package tar file and store it
@@ -83,32 +63,20 @@ func ServeHTTPInvoke(w http.ResponseWriter, req *http.Request) {
         makeFailedResponse(w, http.StatusInternalServerError, err.Error())
         return 
     }
-    //to simplify it , we treat the data as an js file index.js . TBD to replace it with a tar file
 
-
-
-
+    //to simplify it , we treat the data as an js file index.js . TBD to replace it with a tar fil
     // hack to return immediately
     //makeOKResponse(w, "Function " + functionId + " invoked successfully:" + string(evt[:]))
     //return
     
     if _, ok := fm.GetFunctionManager().GetFunction(functionId); ok == false {
 
-            sf, ok2 := fm.GetFunctionManager().FetchFunction(functionId)
-            if  ok2 == false {
-                makeFailedResponse(w, http.StatusInternalServerError, "Failed to get the function package.")
-                return
-            }
-
-            fm.GetFunctionManager().AddFunction(sf)
-
-        // makeFailedResponse(w, http.StatusBadRequest, "Function " + functionId + "  not exists!")
-        // return 
+        makeFailedResponse(w, http.StatusBadRequest, "Function " + functionId + "  not exists!")
+        return  
     }
             
     respData, _ := fm.GetFunctionManager().ExecuteFunction(functionId, evt)     
     makeOKResponse(w, respData)
-    
 }
 
 func ServeHTTPConfig(w http.ResponseWriter, req *http.Request) {
@@ -152,18 +120,6 @@ func ServeHTTPHealthCheck(w http.ResponseWriter, req *http.Request) {
 var instance *http.ServeMux
 var once sync.Once
 
-func InitFunctionPackageManager (){
-     //config the function manager
-    baseUrl := os.Getenv("FUNCTION_REPOSITORY")
-    if len(baseUrl) > 0 {
-        fgr := fm.GetFunctionManager()
-        pkgMgr := &fm.ServerlessFunctionPackageManager{}
-        
-        pkgMgr.SetFunctionStoreUrl(baseUrl)
-        fgr.SetFunctionPackageManager(pkgMgr)
-    }
-  
-}
 func GetPrserviceHttpHandler() (*http.ServeMux) {
 
     once.Do( func() {
@@ -172,7 +128,6 @@ func GetPrserviceHttpHandler() (*http.ServeMux) {
         instance.HandleFunc("/config", ServeHTTPConfig)
         instance.HandleFunc("/info", ServeHTTPInfo)
         instance.HandleFunc("/invoke", ServeHTTPInvoke)
-        instance.HandleFunc("/fetch", ServeHTTPFetch)
         instance.HandleFunc("/add", ServeHTTPAddFunction)
         instance.HandleFunc("/remove", ServeHTTPRemove)
     })

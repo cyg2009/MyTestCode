@@ -55,7 +55,7 @@ func getServerAddress() string {
 
 func main() {
     fmt.Println("Starting process router...")
-    prservice.InitFunctionPackageManager()
+
     var handler http.Handler = prservice.GetPrserviceHttpHandler()
 
     listenAddress := getServerAddress()

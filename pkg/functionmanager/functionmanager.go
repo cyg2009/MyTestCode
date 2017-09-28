@@ -3,7 +3,6 @@ package functiomanager
 import (
     "bufio"
     "bytes"
-    "strings"
     "io"      
     "io/ioutil"
     "syscall"
@@ -12,7 +11,6 @@ import (
     "sync"
     "os"
     // "os/signal"
-    "net/http"
     "encoding/json"
     "path/filepath"
 )
@@ -80,19 +78,12 @@ func (sf *ServerlessFunction) Trigger (event []byte) (string) {
     return lines.String()
 }
 
-type FetchFunctionPackage interface{
-   FetchFunction (functionId string) (*ServerlessFunction, bool) 
-} 
 
 
 type ServerlessFunctionManager struct{
     functionStore map[string]*ServerlessFunction
-    fetchFunction FetchFunctionPackage
 }
 
-func (mgr *ServerlessFunctionManager) SetFunctionPackageManager(gf FetchFunctionPackage){
-    mgr.fetchFunction = gf
-} 
 
 func (mgr *ServerlessFunctionManager) AddFunction (sf *ServerlessFunction) {
     // sf.Start()
@@ -203,154 +194,6 @@ func RemoveContents(dir string) error {
     return nil
 }
 
-func getManifest(baseUrl string, funcName string, funcTag string) ([]byte, error) {
-    var manifestUrl = baseUrl + funcName + "/manifests/" + funcTag
-
-	resp, err := http.Get(manifestUrl)
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := ioutil.ReadAll(resp.Body)
-	defer resp.Body.Close()
-	if err != nil {
-		return nil, err
-    }
-    
-    return body, err
-}
-
-func getLayer(baseUrl string, funcName string, blobSum string) ([]byte, error) {
-	layerUrl := baseUrl + funcName + "/blobs/" + blobSum
-	resp, err := http.Get(layerUrl)
-	if err != nil {
-		return nil, err
-    }
-    
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	return body, nil
-}
-
-//This is just an implementation of getting function package. we need abstract this out into an interface 
-func  retrieveFunction(baseUrl string, functionId string) (string, error) {
-    temp := strings.Split(functionId, ":")
-    funcName := ""
-    funcTag := "latest"
-    if len(temp) > 1 {
-        l := len(temp)
-        funcTag = temp[l - 1]
-        funcName = temp[l - 2]
-    }
-
-    var dest = os.Getenv("RUNTIME_ROOT")
-    if len(dest) == 0 {
-        dest = "/var/runtime"
-    }
-
-    dest = dest + "/func/" + functionId
-
-    if _, err := os.Stat(dest); os.IsNotExist(err) {
-        os.Mkdir(dest, os.ModeDir)
-    } else {
-        RemoveContents(dest)
-    }
-
-    body, err := getManifest(baseUrl, funcName, funcTag)
-    if err != nil {
-		return "", err
-    }
-    
-	var f interface{}
-	err = json.Unmarshal(body, &f)
-	if err != nil {
-		return "",  err
-	}
-	m := f.(map[string]interface{})
-
-	fsLayers := m["fsLayers"].([]interface{})
-    um := fsLayers[0].(map[string]interface{})
-    blobSum := um["blobSum"].(string)
-    layer, err := getLayer(baseUrl,funcName, blobSum)
-    if err != nil {
-        return "", err
-    }
-
-    if len(layer) == 0 {
-        return "", errors.New("Zero size function fetched.")
-    }
-    target := "layer.tar"
-    err = ioutil.WriteFile(target, layer, 0644)
-    if err != nil {
-        return "", err
-    }
-    cmd := exec.Command("tar", "-xvf", target, "-C", dest)
-    err = cmd.Run()
-    if err != nil {
-        return "", err
-    }
-
-    exec.Command("rm", target).Run()
-
-    
-    return  dest, nil		
-}
-
-// Default implementation of the GetFunctionPackage interface
-// At this moment, we use the tenantId to hold baseUrl for testing purpose. It can be configured in the future
-func (mgr *ServerlessFunctionManager) FetchFunction (functionId string) (*ServerlessFunction, bool) {
-
-    if mgr.fetchFunction == nil {
-        return nil, false
-    }
-
-    return mgr.fetchFunction.FetchFunction(functionId)
-}
-
-
-// default implementation of interface GetFunctionPackage
-type ServerlessFunctionPackageManager struct {
-    functionStoreUrl string
-}
-
-// inject the store url 
-func (pm *ServerlessFunctionPackageManager) SetFunctionStoreUrl (baseUrl string){
-    pm.functionStoreUrl = baseUrl
-} 
-
-
-
-func (pm *ServerlessFunctionPackageManager) FetchFunction (functionId string)(*ServerlessFunction, bool) {
-
-    funcpath, err := retrieveFunction(pm.functionStoreUrl, functionId)
-    if err != nil {
-        return nil, false
-    }
-
-    var dest = os.Getenv("RUNTIME_ROOT")
-    if len(dest) == 0 {
-        dest = "/var/runtime"
-    }
-
-    // dest = dest + "/rtsp/nodejs/bin/lambda-run"
-
-    sf := &ServerlessFunction{
-        id: functionId,
-        input: nil,
-        outputReader: nil,
-        cmd: nil,
-        started: false,
-        command: "node",
-        args: []string{funcpath + "/index.js"},
-    }
-
-    return sf, true
-} 
-
 // Singleton 
 var instance *ServerlessFunctionManager
 var once sync.Once
@@ -359,7 +202,6 @@ func GetFunctionManager() (*ServerlessFunctionManager) {
 
     once.Do( func() {
             instance = &ServerlessFunctionManager {
-            fetchFunction: nil, //need be injected later
             functionStore: make(map[string]*ServerlessFunction),
         }
     })
