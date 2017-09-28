@@ -3,14 +3,14 @@
 FROM gcr.io/k8stest-167418/alpine-node:272212
 RUN mkdir -p /var/runtime 
 ADD runtime /var/runtime
-ADD processrouter /var/runtime/processrouter
-WORKDIR /var/runtime/func
+ADD processrouter /var/runtime/bin/processrouter
+WORKDIR /var/runtime/bin
 ENV PATH="/var/runtime/bin:$PATH" \
     DEFAULT_SERVER_PORT="28903" \
     RUNTIME_ROOT="/var/runtime" \
-    FUNCTION_REPOSITORY="http://10.21.119.117:5000/v2/serverless/"
+    RUNTIME_LAMBDA="/var/runtime/bin/lambda-run"
 
 EXPOSE 28903
 
-CMD ["/var/runtime/processrouter"]
+CMD ["/var/runtime/bin/processrouter"]
 
