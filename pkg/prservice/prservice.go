@@ -74,8 +74,9 @@ func ServeHTTPInvoke(w http.ResponseWriter, req *http.Request) {
         makeFailedResponse(w, http.StatusBadRequest, "Function " + functionId + "  not exists!")
         return  
     }
-            
+
     respData, _ := fm.GetFunctionManager().ExecuteFunction(functionId, evt)     
+
     makeOKResponse(w, respData)
 }
 

@@ -10,7 +10,8 @@ import (
     "errors"
     "sync"
     "os"
-    // "os/signal"
+    "fmt"
+    "strings"
     "encoding/json"
     "path/filepath"
 )
@@ -62,34 +63,33 @@ func (sf *ServerlessFunction) Trigger (event []byte) (string) {
     
     // read multiple lines of data from the function process
     var lines bytes.Buffer
+
     for {
-
         line, _, err := sf.outputReader.ReadLine()
+        // return fmt.Sprintf("get a line of data back: %d",len(line)) 
+        newLine := string(line)
 
-        //will break at an empty line 
-        if err != nil || len(line) == 0 {
+        fmt.Println(newLine)
+        if strings.HasPrefix(newLine, `{{{}}}`) {
+            break;
+        }
+       
+        lines.WriteString(newLine)
+        lines.WriteString("\n\r")
+
+          //will break at an empty line 
+        if err != nil {
+            fmt.Println("Got error message:")
+               fmt.Println(err)
             break
         }
-   
-        lines.WriteString(string(line))
-        lines.WriteString("\n\r")
     }
 
     return lines.String()
 }
 
-
-
 type ServerlessFunctionManager struct{
     functionStore map[string]*ServerlessFunction
-}
-
-
-func (mgr *ServerlessFunctionManager) AddFunction (sf *ServerlessFunction) {
-    // sf.Start()
-    if mgr.functionStore[sf.id] == nil || mgr.functionStore[sf.id] != sf {
-        mgr.functionStore[sf.id] = sf
-    }
 }
 
 func (mgr *ServerlessFunctionManager) CreateFunction (functionId string, data []byte, sfcommand string, sfarguments []string)(*ServerlessFunction, bool) {

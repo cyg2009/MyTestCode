@@ -7,8 +7,10 @@
    process.stdin.setEncoding('utf-8')
 
    process.stdin.on('data', function (data) {
+        console.log('info', 'Got a new event:')
+        console.log('{{{}}}') //indicate end of a conversation
+        return
 
-        console.log('info', 'Got event:' + data)
         var event = JSON.parse(data)
         var lambdaHandler = 'handler'
         if (lambdaFunc){
@@ -20,8 +22,8 @@
             err='can not find function file:'+lambdaPath;
             console.log('can not find function:'+lambdaPath);
         } 
-        
         console.log('') //indicate end of a conversation
+    
     });
 
 
