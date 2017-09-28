@@ -52,6 +52,7 @@ func (sf *ServerlessFunction) Stop(){
         syscall.Kill(-1*sf.cmd.Process.Pid, syscall.SIGKILL)
    } 
 }
+
 func (sf *ServerlessFunction) Trigger (event []byte) (string) {
     
     if !sf.started {
@@ -202,6 +203,7 @@ func  retrieveFunction(baseUrl string, functionId string) (string, error) {
     if len(dest) == 0 {
         dest = "/var/runtime"
     }
+
     dest = dest + "/func/" + functionId
 
     if _, err := os.Stat(dest); os.IsNotExist(err) {
@@ -271,7 +273,25 @@ type ServerlessFunctionPackageManager struct {
 func (pm *ServerlessFunctionPackageManager) SetFunctionStoreUrl (baseUrl string){
     pm.functionStoreUrl = baseUrl
 } 
+func (pm *ServerlessFunctionPackageManager) AddFunction (functionId string, sfcommand string, arguments []string)(*ServerlessFunction, bool) {
 
+    if len(functionId) == 0 || len(sfcommand) == 0 {
+        return nil, false
+    }
+
+    sf := &ServerlessFunction{
+        id: functionId,
+        input: nil,
+        outputReader: nil,
+        cmd: nil,
+        started: false,
+        command: sfcommand,
+        args: arguments,
+    }
+
+    return sf, true
+
+}
 func (pm *ServerlessFunctionPackageManager) FetchFunction (functionId string)(*ServerlessFunction, bool) {
 
     funcpath, err := retrieveFunction(pm.functionStoreUrl, functionId)
@@ -281,10 +301,10 @@ func (pm *ServerlessFunctionPackageManager) FetchFunction (functionId string)(*S
 
     var dest = os.Getenv("RUNTIME_ROOT")
     if len(dest) == 0 {
-        dest = "/opt/CFF/runtime"
+        dest = "/var/runtime"
     }
 
-    dest = dest + "/rtsp/nodejs/bin/lambda-run"
+    // dest = dest + "/rtsp/nodejs/bin/lambda-run"
 
     sf := &ServerlessFunction{
         id: functionId,
@@ -293,12 +313,11 @@ func (pm *ServerlessFunctionPackageManager) FetchFunction (functionId string)(*S
         cmd: nil,
         started: false,
         command: "node",
-        args: []string{dest,funcpath + "/index.js"},
+        args: []string{funcpath + "/index.js"},
     }
 
     return sf, true
 } 
-
 
 // Singleton 
 var instance *ServerlessFunctionManager
