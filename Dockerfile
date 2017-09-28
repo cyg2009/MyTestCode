@@ -2,7 +2,7 @@
 
 FROM gcr.io/k8stest-167418/alpine-node:272212
 RUN mkdir -p /var/runtime 
-ADD runtime /var/runtime
+#ADD runtime /var/runtime
 ADD processrouter /var/runtime/processrouter
 WORKDIR /var/runtime/func
 ENV PATH="/var/runtime/rtsp/nodejs/bin:$PATH" \
