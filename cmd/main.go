@@ -4,8 +4,7 @@ import (
     "os"
     "fmt"
     "net"
-    "../pkg/prservice"
-    fm "../pkg/functionmanager"
+    "MyTestCode/pkg/prservice"
     "net/http"
 )
 
@@ -56,17 +55,7 @@ func getServerAddress() string {
 
 func main() {
     fmt.Println("Starting process router...")
-
-    //config the function manager
-    baseUrl := os.Getenv("FUNCTION_REPOSITORY")
-    if len(baseUrl) > 0 {
-        fgr := fm.GetFunctionManager()
-        pkgMgr := &fm.ServerlessFunctionPackageManager{}
-        
-        pkgMgr.SetFunctionStoreUrl(baseUrl)
-        fgr.SetFunctionPackageManager(pkgMgr)
-    }
-  
+    prservice.InitFunctionPackageManager()
     var handler http.Handler = prservice.GetPrserviceHttpHandler()
 
     listenAddress := getServerAddress()

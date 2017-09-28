@@ -5,7 +5,7 @@ import (
     "io/ioutil"
     "sync"
     "time"
-    fm "../functionmanager"
+    fm "MyTestCode/pkg/functionmanager"
 )
 
 func makeOKResponse(w http.ResponseWriter, body string){
@@ -151,6 +151,18 @@ func ServeHTTPHealthCheck(w http.ResponseWriter, req *http.Request) {
 var instance *http.ServeMux
 var once sync.Once
 
+func InitFunctionPackageManager (){
+     //config the function manager
+    baseUrl := os.Getenv("FUNCTION_REPOSITORY")
+    if len(baseUrl) > 0 {
+        fgr := fm.GetFunctionManager()
+        pkgMgr := &fm.ServerlessFunctionPackageManager{}
+        
+        pkgMgr.SetFunctionStoreUrl(baseUrl)
+        fgr.SetFunctionPackageManager(pkgMgr)
+    }
+  
+}
 func GetPrserviceHttpHandler() (*http.ServeMux) {
 
     once.Do( func() {
