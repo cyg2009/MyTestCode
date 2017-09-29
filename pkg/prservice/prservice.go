@@ -5,7 +5,7 @@ import (
     "io/ioutil"
     "sync"
     "time"
-    fm "MyTestCode/pkg/functionmanager"
+    fm "github.com/cyg2009/MyTestCode/pkg/functionmanager"
 )
 
 func makeOKResponse(w http.ResponseWriter, body string){

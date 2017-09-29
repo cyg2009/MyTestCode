@@ -4,7 +4,7 @@ import (
     "os"
     "fmt"
     "net"
-    "MyTestCode/pkg/prservice"
+    "github.com/cyg2009/MyTestCode/pkg/prservice"
     "net/http"
 )
 

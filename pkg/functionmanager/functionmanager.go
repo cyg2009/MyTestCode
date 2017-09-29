@@ -5,7 +5,7 @@ import (
     "errors"
     "sync"
     "encoding/json"
-    sf "MyTestCode/pkg/serverlessfunction"
+    sf "github.com/cyg2009/MyTestCode/pkg/serverlessfunction"
 )
 
 
