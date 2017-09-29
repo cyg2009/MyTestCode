@@ -8,10 +8,11 @@ function LOG() {
 }
 
 function main() {
-    LOG "go build --ldflags '-extldflags \"-static\"' -a -o processrouter ./cmd"
+    LOG "docker run -it -v $(pwd):/go/src/github.com/cyg2009/MyTestCode -w="/go/src/github.com/cyg2009/MyTestCode" golang:latest go build --ldflags '-extldflags \"-static\"' -a -o processrouter"
     export CGO_ENABLED=0
     export GO_EXTLINK_ENABLED=0
-    go build --ldflags '-extldflags "-static"' -a 
+    docker run -it -v $(pwd):/go/src/github.com/cyg2009/MyTestCode -w="/go/src/github.com/cyg2009/MyTestCode" golang:latest go build --ldflags '-extldflags "-static"' -a -o processrouter
+    
 }
 
 main $*
