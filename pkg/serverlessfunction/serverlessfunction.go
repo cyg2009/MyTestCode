@@ -9,7 +9,6 @@ import (
     "os/exec"
     "strings"
     "os"
-    "path/filepath"
     "errors"
 )
 
@@ -24,25 +23,43 @@ type ServerlessFunction struct{
     started bool
 }
 
-func RemoveContents(dir string) error {
-    d, err := os.Open(dir)
-    if err != nil {
-        return err
+func LoadFunction(functionId string) *ServerlessFunction {
+
+    dest := os.Getenv("RUNTIME_ROOT")
+    if len(dest) == 0 {
+        dest = "/var/runtime"
     }
-    defer d.Close()
-    names, err := d.Readdirnames(-1)
-    if err != nil {
-        return err
+
+    sfCommand := "node"
+    lambda := os.Getenv("RUNTIME_LAMBDA")
+    if len(lambda) == 0 {
+        lambda = "/var/runtime/bin/lambda-run"
     }
-    for _, name := range names {
-        err = os.RemoveAll(filepath.Join(dir, name))
-        if err != nil {
-            return err
-        }
+   
+    dest += "/func/" + functionId
+    if _, err := os.Stat(dest); os.IsNotExist(err) {
+        return nil
+    } 
+    dest += "/index.js"
+    if _, err := os.Stat(dest); os.IsNotExist(err) {
+        return nil
+    } 
+
+    sfArguments := []string{lambda, dest}
+    ff := &ServerlessFunction{
+        id: functionId,
+        input: nil,
+        outputReader: nil,
+        cmd: nil,
+        started: false,
+        command: sfCommand,
+        args: sfArguments,
     }
-    return nil
+
+    return ff
 }
 
+// Use default value for sfCommand and sfArguments
 func CreateServerlessFunction (functionId string, data []byte, sfCommand string, sfArguments []string) (*ServerlessFunction, error){
 
     if len(functionId) == 0 {
@@ -64,12 +81,9 @@ func CreateServerlessFunction (functionId string, data []byte, sfCommand string,
     }
 
     dest = dest + "/func/" + functionId
-    if _, err := os.Stat(dest); os.IsNotExist(err) {
-        os.Mkdir(dest, os.ModeDir)
-    } else {
-        RemoveContents(dest)
-    }
- 
+    os.RemoveAll(dest)
+    os.Mkdir(dest, os.ModeDir)
+
     dest = dest + "/index.js"
     err := ioutil.WriteFile(dest, data, 0644)
     if err != nil {
@@ -96,6 +110,11 @@ func CreateServerlessFunction (functionId string, data []byte, sfCommand string,
 
     return ff, nil
 }
+
+func (sf *ServerlessFunction) Name() string{
+   return sf.id
+}
+
 func (sf *ServerlessFunction) Start(){
 
    if !sf.started {
@@ -115,7 +134,7 @@ func (sf *ServerlessFunction) Start(){
 }
 
 func (sf *ServerlessFunction) Stop(){
-
+   // A lock is need to protect sf.started operation
    if sf.started {
         sf.started = false
         syscall.Kill(-1*sf.cmd.Process.Pid, syscall.SIGKILL)

@@ -3,17 +3,33 @@ package prservice
 import (
     "os"
     "bytes"
+    "io/ioutil"
 	"net/http"
 	"testing"
     "net/http/httptest"
-    fm "MyTestCode/pkg/functionmanager"
+    fm "github.com/cyg2009/MyTestCode/pkg/functionmanager"
 )
 
 func TestMain(m *testing.M) {    
+    wd, _ := os.Getwd()
+	os.Setenv("RUNTIME_ROOT",  wd)	
+    os.Setenv("RUNTIME_LAMBDA", wd + "/../../runtime/bin/lambda-run")
+        
+    dest := wd + "/func"
+	
+	_, err := os.Stat(dest)	
+	if err == nil {
+		os.RemoveAll(dest)		
+	}
 
-    os.Setenv("RUNTIME_ROOT", "/work/src/MyTestCode/runtime")
-    os.Setenv("RUNTIME_LAMBDA", "/work/src/MyTestCode/runtime/bin/lambda-run")
+    os.Mkdir(dest, os.ModeDir)
+
     code := m.Run() 
+    
+    _, err = os.Stat(dest)	
+	if err == nil {
+		os.RemoveAll(dest)
+	}
 
     os.Exit(code)
 }
@@ -111,6 +127,52 @@ func TestIngestAndExecuteFunction(t *testing.T){
 
 	rr = httptest.NewRecorder()	
 	handler = GetPrserviceHttpHandler()
+	
+    handler.ServeHTTP(rr, req)
+    
+	if status := rr.Code; status != http.StatusOK {
+        t.Errorf("Function-Invoke handler returned wrong status code: got %v want %v",
+            status, http.StatusOK)
+	}
+  
+    t.Log(rr.Body.String())   
+}
+
+func TestExecuteExistingFunction(t *testing.T){
+    // Use a random id would be better
+    functionId := "f2:1.0"
+
+    dest := os.Getenv("RUNTIME_ROOT") + "/func/" + functionId
+ 
+    data :=  []byte(`
+       exports.handler = function(event) {
+		   console.log((new Date()).toString())
+           console.log('f2:1.0 received an event:' + JSON.stringify(event))           
+       }
+	`)
+
+	os.RemoveAll(dest)
+	os.Mkdir(dest, os.ModeDir)
+
+	dest = dest + "/index.js"
+	err := ioutil.WriteFile(dest, data, 0644)
+	
+    if err != nil {
+         t.Errorf("Fail  to create function " + functionId)
+	}		
+    
+    //Execution function
+    evt := []byte(`{"name":"cacia", "age":"19"}`)
+    req, err := http.NewRequest("POST", "/invoke", bytes.NewBuffer(evt))
+    if err != nil {
+        t.Fatal(err)
+	}
+
+    req.Header.Add("function",functionId)
+    req.Header.Set("Content-Type","applicaiton/json")
+
+	rr := httptest.NewRecorder()	
+	handler := GetPrserviceHttpHandler()
 	
     handler.ServeHTTP(rr, req)
     
